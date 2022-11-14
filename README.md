@@ -1,7 +1,7 @@
 # Redis
-A vibrant, open source database
+ ![image-20221114205454976](images/image-20221114205454976.png)
 
-  ![image-20221114205454976](\images\image-20221114205454976.png)
+A vibrant, open source database
 
 官方地址：https://redis.io/
 
