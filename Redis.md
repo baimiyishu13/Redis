@@ -546,7 +546,7 @@ OK
 "redis"
 ```
 
-+ mest：批量设置值
++ mset：批量设置值
 + mget批量获取值
 
 ```SH
@@ -602,7 +602,7 @@ String类似的使用常见：value除了是我们的字符串，还可以是数
 
 
 
-### :taco:List
+#### :tangerine:List
 
 ---
 
@@ -661,12 +661,401 @@ llist
 127.0.0.1:6379> LLEN list	# 获取list的长度
 (integer) 2
 ##########################################################
-移除指定的值!
+
+!
 127.0.0.1:6379> lrem list 1 one		# 移除一个值，从上到下
 (integer) 1
 ##########################################################
 trim 修剪,list
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+127.0.0.1:6379> RPUSH mylist "hello1"
+(integer) 2
+127.0.0.1:6379> RPUSH mylist "hello2"
+(integer) 3
+127.0.0.1:6379> ltrim mylist 1 2
+OK
+127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello1"
+2) "hello2"
+##########################################################
+rpop lpush # 移除列表最后一个元素，添加到其他列表
+127.0.0.1:6379> RPUSH mylist "hello"
+(integer) 1
+127.0.0.1:6379> RPUSH mylist "hello1"
+(integer) 2
+127.0.0.1:6379> RPUSH mylist "hello2"
+(integer) 3
+127.0.0.1:6379> RPOPLPUSH mylist myotherlist
+"hello2"
+127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello"
+2) "hello1"
+127.0.0.1:6379> LRANGE myotherlist 0 -1
+1) "hello2"
+##########################################################
+判断列表是否存在
+127.0.0.1:6379> EXISTS list
+(integer) 0
+##########################################################
+lset 将列表中指定下标的值替换成新的值，
+127.0.0.1:6379> EXISTS list
+(integer) 0
+127.0.0.1:6379> lset list 0 item
+(error) ERR no such key
+127.0.0.1:6379> LPUSH list value1
+(integer) 1
+127.0.0.1:6379> LRANGE list 0 0
+1) "value1"
+127.0.0.1:6379> LSET list 0 item
+OK
+127.0.0.1:6379> LRANGE list 0 0
+1) "item"
+##########################################################
+linsert # 插入
+127.0.0.1:6379> RPUSH mylist hello
+(integer) 1
+127.0.0.1:6379> RPUSH mylist world
+(integer) 2
+127.0.0.1:6379> LINSERT mylist before "world" "other"
+(integer) 3
+127.0.0.1:6379> LRANGE mylist 0 -1
+1) "hello"
+2) "other"
+3) "world"
 ```
+
+> 小结
+
+实际上是一个链表，left、right都可以创建
+
+如果key不存在：创建新的链表
+
+如果存在，新增内容；
+
+如移除了所有的值，空链表，也代表不存在！
+
+两边插入或改动值，效率最高！中间元素，相对来说效率会低一点
+
+
+
+#### :tangerine:Set
+
+---
+
+Set 中的值是不能重读的！
+无序的！
+
+```SH
+127.0.0.1:6379> SADD myset "hello"	# 添加一个值
+(integer) 1
+127.0.0.1:6379> SADD myset "world"
+(integer) 1
+127.0.0.1:6379> SADD myset "!!!"
+(integer) 1
+127.0.0.1:6379> smembers myset	# 查看
+1) "hello"
+2) "!!!"
+3) "world"
+127.0.0.1:6379> sismember myset hello	# 判断 hello 值是否存在 myset 中
+(integer) 1
+127.0.0.1:6379> scard myset	# set集合元素个数
+(integer) 3
+127.0.0.1:6379> srem myset !!!	# 移除元素
+(integer) 1
+127.0.0.1:6379> scard myset
+(integer) 2
+
+```
+
+set 无需不重复集合，随机抽取
+
+```SH
+127.0.0.1:6379> SMEMBERS myset
+1) "Python"
+2) "JAVA"
+3) "GO"
+4) "PHP"
+5) "SHELL"
+127.0.0.1:6379> srandmember myset		# 随机抽取一个
+"JAVA"
+127.0.0.1:6379> srandmember myset
+"PHP"
+127.0.0.1:6379> srandmember myset 2		# 随机抽取两个
+1) "Python"
+2) "SHELL"
+127.0.0.1:6379> srandmember myset 2
+1) "PHP"
+2) "JAVA"
+```
+
+删除：随机删除key
+
+```SH
+127.0.0.1:6379> smembers myset
+1) "Python"
+2) "PHP"
+3) "GO"
+4) "JAVA"
+5) "SHELL"
+127.0.0.1:6379> spop myset			# 随机删除1个元素
+"JAVA"
+127.0.0.1:6379> smembers myset
+1) "Python"
+2) "PHP"
+3) "GO"
+4) "SHELL"
+127.0.0.1:6379> spop myset 2		# 随机删除多个元素
+1) "GO"
+2) "Python"
+127.0.0.1:6379> smembers  myset
+1) "PHP"
+2) "SHELL"
+
+```
+
+将一个指定的值，移动到另外一个set集合！
+
+```sh
+127.0.0.1:6379> sadd myset1 "GO"
+(integer) 1
+127.0.0.1:6379> sadd myset1 "Linux"
+(integer) 1
+127.0.0.1:6379> sadd myset2 "Python"
+(integer) 1
+127.0.0.1:6379> sadd myset2 "kubernetes"
+(integer) 1
+127.0.0.1:6379> smembers myset1
+1) "GO"
+2) "Linux"
+127.0.0.1:6379> smembers myset2
+1) "Python"
+2) "kubernetes"
+127.0.0.1:6379> smove myset1 myset2 "Linux"	 # 移动指定的元素到另一个集合
+(integer) 1
+127.0.0.1:6379> smove myset2 myset1 "Python"
+(integer) 1
+127.0.0.1:6379> smembers myset1
+1) "Python"
+2) "GO"
+127.0.0.1:6379> smembers myset2
+1) "kubernetes"
+2) "Linux"
+```
+
+数字集合类
+
++ 并集、交集、差集
+
+```SH
+127.0.0.1:6379> sadd myset1 "tom"
+(integer) 1
+127.0.0.1:6379> sadd myset1 "alias"
+(integer) 1
+127.0.0.1:6379> sadd myset2 "jack"
+(integer) 1
+127.0.0.1:6379> sadd myset2 "tom"
+(integer) 1
+127.0.0.1:6379> smembers myset1
+1) "alias"
+2) "tom"
+127.0.0.1:6379> smembers myset2
+1) "tom"
+2) "jack"
+
+# 差集
+127.0.0.1:6379> sdiff myset1 myset2
+1) "alias"
+
+# 交集
+127.0.0.1:6379> sinter myset1 myset2
+1) "tom"
+
+# 并集
+127.0.0.1:6379> sunion myset1 myset2
+1) "tom"
+2) "alias"
+3) "jack"
+
+
+```
+
+
+
+#### :tangerine:Hash集合
+
+---
+
+Map集合，key-map! 时候这个值是一个map集合，本质和String类型没有太大的区别，还是一个简单的key - value
+
+```SH
+127.0.0.1:6379> hset myhash field1 redis	# 存值
+(integer) 1	
+127.0.0.1:6379> hget myhash field1			# 取值
+"redis"
+
+127.0.0.1:6379> hmset myhash field1 "hello" field2 "world"	# 存多个值
+OK
+127.0.0.1:6379> hget myhash field1
+"hello"
+127.0.0.1:6379> hget myhash field2
+"world"
+127.0.0.1:6379> hmget myhash field1 field2	# 获取多个值
+1) "hello"
+2) "world"
+127.0.0.1:6379> hgetall myhash		# 获取所有的数据
+1) "field1"
+2) "hello"
+5) "field2"
+6) "world"
+```
+
+删除一个值
+
+```sh
+127.0.0.1:6379> hdel myhash field1	# 删除 hash 指定的 key
+(integer) 1
+127.0.0.1:6379> hgetall myhash
+1) "field2"
+2) "world"
+```
+
+长度：获取键值对数量
+
+```SH
+127.0.0.1:6379> hlen myhash
+(integer) 1
+```
+
+判断hash指定key是否存在
+
+```sh
+127.0.0.1:6379> hexists myhash key2
+(integer) 1
+```
+
+只获取key或value
+
+```SH
+127.0.0.1:6379> hkeys myhash
+1) "field2"
+2) "key1"
+3) "key2"
+4) "key3"
+127.0.0.1:6379> hvals myhash
+1) "world"
+2) "1"
+3) "2"
+4) "3"
+```
+
+自增、自减
+
+```SH
+# 自增
+127.0.0.1:6379> hvals myhash
+1) "world"
+2) "1"
+3) "2"
+4) "3"
+127.0.0.1:6379> hincrby myhash key3 1
+(integer) 4
+127.0.0.1:6379> hincrby myhash key3 1
+(integer) 5
+127.0.0.1:6379> hvals myhash
+1) "world"
+2) "1"
+3) "2"
+4) "5"
+# 自减
+127.0.0.1:6379> hincrby myhash key3 -1
+(integer) 4
+```
+
+使用：hash变更的数据（user、name、age）；用户信息的保存之类，或者经常变动的信息；
+
++ hash：更适合对象的存储
++ string：合适字符串
+
+
+
+#### :tangerine:Zset(有序集合)
+
+---
+
+在 set 的基础上，增加了一个值，set k1 v1； zset k1 score v1
+
+排序的作用
+
+```sh
+127.0.0.1:6379> zadd myset 1 one
+(integer) 1
+127.0.0.1:6379> zadd myset 2 two 3 three
+(integer) 2
+127.0.0.1:6379> zrange myset 0 -1
+1) "one"
+2) "two"
+3) "three"
+```
+
+排序：
+
+```sh
+127.0.0.1:6379> zadd salary 2500 tom
+(integer) 1
+127.0.0.1:6379> zadd salary 200 alias
+(integer) 1
+127.0.0.1:6379> zadd salary 3000 jerry
+(integer) 1
+127.0.0.1:6379> zrange salary  0 -1
+1) "alias"
+2) "tom"
+3) "jerry"
+127.0.0.1:6379> zrangebyscore salary -inf +inf
+1) "alias"
+2) "tom"
+3) "jerry"
+127.0.0.1:6379> zrangebyscore salary -inf +inf withscores
+1) "alias"
+2) "200"
+3) "tom"
+4) "2500"
+5) "jerry"
+6) "3000"
+
+```
+
+移除：
+
+```sh
+1) "alias"
+2) "tom"
+3) "jerry"
+127.0.0.1:6379> zrem salary alias	# 移除指定元素
+(integer) 1
+127.0.0.1:6379> zrange salary 0 -1
+1) "tom"
+2) "jerry"
+```
+
+集合中的个数
+
+```
+127.0.0.1:6379> zcard salary
+(integer) 2
+```
+
+获取指定区间的数量：zcount
+
+用途：排行
+
+
+
+
+
+
+
+
 
 
 
